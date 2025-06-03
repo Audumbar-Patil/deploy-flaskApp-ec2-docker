@@ -1,0 +1,11 @@
+# Flask Docker AWS EC2 App
+
+## Author
+Audumbar Patil <patil.audumbar.santosh@gmail.com>
+Pune, India
+
+## Description
+This is a simple Flask app running inside Docker and deployed on AWS EC2.
+
+## Ownership
+This project is developed and maintained by Audumbar Patil.

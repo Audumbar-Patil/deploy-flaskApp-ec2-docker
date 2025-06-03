@@ -5,6 +5,9 @@ app = Flask(__name__)
 def home():
     return "Hello from Flask on Docker!"
 
+if __name__ == "__main__":
+    app.run(host="0.0.0.0", port=5000)
+
 
 #1. Flask App Creation
 #   app = Flask(__name__) initializes a new Flask web application. __name__ tells Flask where to look for resources like templates and static files. 

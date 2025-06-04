@@ -1,122 +1,170 @@
-🚀 Project: Deploying a Flask Web App Using Docker on AWS EC2
-1. Project Summary
-You built a simple web application using Flask, a lightweight Python web framework, containerized it with Docker, and deployed it on an AWS EC2 instance. This project demonstrates full-cycle deployment from local development to cloud hosting using containerization — a key modern software engineering skill.
+Absolutely! Here’s a **step-by-step guide** for deploying your Flask app on an **AWS EC2 instance running Linux**, using Docker to containerize and run it.
 
-2. Tech Stack Overview
-Technology	Role in Project	Real-World Use Case
-Python	Programming language for backend (Flask app)	Widely used for backend services, automation, data science, and APIs in companies of all sizes
-Flask	Web framework to build a simple HTTP server	Popular for building REST APIs and microservices in startups and enterprises
-Docker	Containerization tool to package the app & deps	Ensures consistency across environments; used in CI/CD pipelines and microservice deployments
-AWS EC2	Cloud VM to host and run your Docker container	Industry standard for scalable cloud infrastructure to host apps, databases, and services
-Linux CLI	Command line tools for managing server & Docker	Essential skill for managing cloud infrastructure and DevOps workflows
+---
 
-3. Step-by-Step Workflow
-Step 1: Build the Flask Application
-Created a basic Flask app (app.py) that serves a simple message on root URL /.
+# Deploy Flask App on AWS EC2 with Docker (Linux)
 
-Ensured the app listens on 0.0.0.0 so it’s accessible from outside the container.
+---
 
-python
-Copy
-Edit
+## 1. Prepare Your Flask App and Dockerfile
+
+Use the **same Flask app** and Dockerfile as before:
+
+### `app.py`
+
+```python
 from flask import Flask
+
 app = Flask(__name__)
 
 @app.route('/')
-def home():
-    return "Hello from Flask on Docker!"
+def hello():
+    return "Hello from Flask on EC2 with Docker!"
 
-if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=5000)
-Step 2: Prepare Dependencies
-Added requirements.txt listing Python dependencies (e.g., Flask) for Docker to install.
+if __name__ == '__main__':
+    app.run(host='0.0.0.0', port=5000)
+```
 
-Step 3: Create Dockerfile
-Wrote a Dockerfile to:
+### `Dockerfile`
 
-Use official Python slim image as base
-
-Set working directory
-
-Copy requirements.txt and install dependencies
-
-Copy the Flask app files
-
-Specify the command to run the Flask app inside the container
-
-dockerfile
-Copy
-Edit
-FROM python:3.11-slim
+```Dockerfile
+FROM python:3.10-slim
 
 WORKDIR /app
+COPY . /app
 
-COPY requirements.txt .
-RUN pip install -r requirements.txt
+RUN pip install flask
 
-COPY . .
-
+EXPOSE 5000
 CMD ["python", "app.py"]
-Step 4: Build Docker Image Locally
-Built the Docker image using:
+```
 
-bash
-Copy
-Edit
-docker build -t flaskapp .
-This packages your app and all dependencies into a container image.
+---
 
-Step 5: Deploy to AWS EC2
-Provisioned an Ubuntu EC2 instance.
+## 2. Build and Push Docker Image (Optional)
 
-Installed Docker on EC2.
+* You can build the Docker image locally and push to Docker Hub as before,
+* Or build it directly on the EC2 instance.
 
-Copied your project files and Docker image to the EC2 instance.
+*If you build on EC2, no need to push/pull Docker Hub.*
 
-Ran the Docker container on EC2, exposing Flask’s port 5000 mapped to host port 80.
+---
 
-bash
-Copy
-Edit
-sudo docker run -d -p 80:5000 flaskapp
-Step 6: Access the Flask App
-Opened EC2’s public IP in a browser and saw the Flask app response.
+## 3. Launch an EC2 Instance
 
-4. Why This Workflow is Important in Real Companies
-Environment Consistency: Docker ensures that your app runs exactly the same way on your laptop, on EC2, or in any cloud environment.
+* Go to AWS Console → EC2 → Launch Instance
+* Choose **Amazon Linux 2 AMI** or **Ubuntu Server**
+* Choose instance type: t2.micro (Free Tier eligible)
+* Configure security group:
 
-Simplifies Deployment: Using containers abstracts away OS differences and dependency hell.
+  * Allow inbound ports:
 
-Scalability: Running apps in containers is a step toward microservices architecture, where many small apps run independently but work together.
+    * **22** (SSH)
+    * **5000** (for Flask app, or 80 if you plan to map port 5000 → 80)
+* Launch instance and download the `.pem` key file.
 
-Cloud-Ready: AWS EC2 provides scalable, reliable infrastructure used by enterprises to deploy apps.
+---
 
-DevOps Culture: Understanding Docker and cloud VMs is crucial in companies following CI/CD (Continuous Integration/Continuous Deployment).
+## 4. Connect to EC2 via SSH
 
-5. Possible Extensions / Next Steps
-Use Docker Compose to orchestrate multi-container apps (e.g., Flask + database).
+```bash
+ssh -i your-key.pem ec2-user@<EC2-public-IP>    # Amazon Linux 2
+# or for Ubuntu:
+ssh -i your-key.pem ubuntu@<EC2-public-IP>
+```
 
-Deploy using Kubernetes for automated scaling and management.
+---
 
-Add a CI/CD pipeline (GitHub Actions, Jenkins) to automate builds and deployments.
+## 5. Install Docker on EC2
 
-Integrate an actual frontend (React, Angular) to build a full-stack app.
+Run these commands on the EC2 instance terminal:
 
-Add SSL and domain with AWS Route 53 and Load Balancer.
+### For Amazon Linux 2
 
-Use AWS ECS/EKS for production-grade container orchestration.
+```bash
+sudo yum update -y
+sudo amazon-linux-extras install docker
+sudo service docker start
+sudo usermod -a -G docker ec2-user
+# Log out and log back in for group changes to take effect
+```
 
-6. Summary
-This project showcases your understanding of:
+### For Ubuntu
 
-Python backend development with Flask
+```bash
+sudo apt-get update
+sudo apt-get install -y docker.io
+sudo systemctl start docker
+sudo usermod -aG docker ubuntu
+# Log out and back in
+```
 
-Dependency management
+---
 
-Containerization with Docker
+## 6. Copy Your Flask App and Dockerfile to EC2
 
-Cloud deployment on AWS EC2
+From your local machine, use `scp` to copy your project:
 
-Linux command-line and server management
+```bash
+scp -i your-key.pem app.py Dockerfile ec2-user@<EC2-public-IP>:~/
+```
 
-All these skills are highly sought after for roles like Backend Developer, DevOps Engineer, Cloud Engineer, and Full-Stack Developer.
+Replace `ec2-user` with `ubuntu` if Ubuntu.
+
+---
+
+## 7. Build and Run Docker Image on EC2
+
+SSH back into EC2 and run:
+
+```bash
+docker build -t flask-ec2-app .
+docker run -d -p 5000:5000 flask-ec2-app
+```
+
+* `-d` runs container in detached mode
+* `-p 5000:5000` maps container port 5000 to EC2 port 5000
+
+---
+
+## 8. Access Your Flask App
+
+Open browser:
+
+```
+http://<EC2-public-IP>:5000/
+```
+
+You should see:
+
+```
+Hello from Flask on EC2 with Docker!
+```
+
+---
+
+## Summary Table
+
+| Step                 | Command / Action                                         |
+| -------------------- | -------------------------------------------------------- |
+| Launch EC2           | Use Amazon Linux 2 or Ubuntu                             |
+| SSH                  | `ssh -i key.pem ec2-user@<public-ip>`                    |
+| Install Docker       | `sudo yum install docker` / `sudo apt install docker.io` |
+| Copy Files           | `scp -i key.pem app.py Dockerfile ec2-user@<ip>:~/`      |
+| Build Docker Image   | `docker build -t flask-ec2-app .`                        |
+| Run Docker Container | `docker run -d -p 5000:5000 flask-ec2-app`               |
+| Access App           | `http://<public-ip>:5000`                                |
+
+---
+
+## Optional: Run Flask on Port 80 (HTTP default)
+
+If you want your app accessible on port 80 (so no port in URL), you can map ports:
+
+```bash
+docker run -d -p 80:5000 flask-ec2-app
+```
+
+Make sure port 80 is allowed in your EC2 security group.
+
+---

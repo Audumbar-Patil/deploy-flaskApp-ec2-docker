@@ -1,7 +1,3 @@
-Absolutely! Here’s a **step-by-step guide** for deploying your Flask app on an **AWS EC2 instance running Linux**, using Docker to containerize and run it.
-
----
-
 # Deploy Flask App on AWS EC2 with Docker (Linux)
 
 ---
